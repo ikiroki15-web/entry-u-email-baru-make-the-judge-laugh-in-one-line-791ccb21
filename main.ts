@@ -1,33 +1,46 @@
-// Make the Judge Laugh in One Line — entry program.
-//
-// Writes one original one-liner to /output/entry.txt, deterministically:
-// the same bytes on every run, no network, no secrets, no dependencies.
+// One-line joke entry for "Make the Judge Laugh in One Line".
+// The joke is composed from two parts — a setup and a punchline —
+// joined with an em dash, then written to /output/entry.txt with no
+// trailing newline. No dependencies, no network, deterministic.
 
 import { mkdirSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
 
-const LINE =
-  "My neighbor's dog barks at me every morning, so I started barking back — six months later, it's the most consistent friendship I have.";
+const SETUP =
+  "My neighbor's dog barks at me every morning, so I started barking back";
+const PUNCHLINE =
+  "six months later, it's the most consistent friendship I have.";
 
-const MAX_CHARS = 200;
+// Collapse any run of whitespace to a single space and trim the ends,
+// so the composed line is always cleanly spaced.
+function normalize(text: string): string {
+  return text.replace(/\s+/g, " ").trim();
+}
 
-function normalize(line: string): string {
-  // Collapse any stray whitespace to single spaces and trim the ends.
-  return line.replace(/\s+/g, " ").trim();
+// The entry must be a single line of 1-200 characters, counted per
+// code point, so a multi-byte character counts exactly once.
+function validate(line: string): void {
+  const length = [...line].length;
+  if (length < 1 || length > 200) {
+    throw new Error(`entry must be 1-200 characters, got ${length}`);
+  }
+  if (line.includes("\n")) {
+    throw new Error("entry must be a single line");
+  }
+}
+
+// Build the final line: normalized setup, em dash, normalized punchline.
+function compose(): string {
+  return `${normalize(SETUP)} — ${normalize(PUNCHLINE)}`;
 }
 
 function main(): void {
-  const line = normalize(LINE);
-  const chars = [...line].length; // count code points, not UTF-16 units
-  if (chars < 1 || chars > MAX_CHARS) {
-    throw new Error(`Line must be 1-${MAX_CHARS} characters, got ${chars}.`);
-  }
-
+  const line = compose();
+  validate(line);
   const outPath = "/output/entry.txt";
   mkdirSync(dirname(outPath), { recursive: true });
-  // No trailing newline: the file holds exactly the one line, nothing else.
   writeFileSync(outPath, line, "utf8");
-  console.log(`Wrote ${chars} characters to ${outPath}`);
+  console.log(`wrote ${[...line].length} characters to ${outPath}`);
 }
 
 main();
